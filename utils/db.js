@@ -41,7 +41,7 @@ class DBClient {
     }
 
     const collection = this.mongoClient.db().collection('users');
-    const user = await collection.findOne({'email': email});
+    const user = await collection.findOne({ email });
 
     return user != null;
   }
@@ -54,10 +54,7 @@ class DBClient {
     const hash = createHash('sha1');
     hash.update(password);
 
-    const document = {
-      'email': email,
-      'password': hash.digest('hex')
-    };
+    const document = { email, password: hash.digest('hex') };
 
     const collection = this.mongoClient.db().collection('users');
     const result = await collection.insertOne(document);
