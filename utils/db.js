@@ -57,7 +57,7 @@ class DBClient {
     const document = {
       'email': email,
       'password': hash.digest('hex')
-    }
+    };
 
     const collection = this.mongoClient.db().collection('users');
     const result = await collection.insertOne(document);
