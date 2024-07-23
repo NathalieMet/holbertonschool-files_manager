@@ -6,28 +6,16 @@ import AuthController from '../controllers/AuthController';
 const app = express.Router();
 app.use(express.json());
 
-app.get('/status', (req, res) => {
-  AppController.getStatus(req, res);
-});
+app.get('/status', AppController.getStatus);
 
-app.get('/stats', (req, res) => {
-  AppController.getStats(req, res);
-});
+app.get('/stats', AppController.getStats);
 
-app.post('/users', (req, res) => {
-  UsersController.postNew(req, res);
-});
+app.post('/users', UsersController.postNew);
 
-app.get('/connect', (req, res) => {
-  AuthController.getConnect(req, res);
-});
+app.get('/connect', AuthController.getConnect);
 
-app.get('/disconnect', (req, res) => {
-  AuthController.getDisconnect(req, res);
-});
+app.get('/disconnect', AuthController.getDisconnect);
 
-app.get('/users/me', (req, res) => {
-  UsersController.getMe(req, res);
-});
+app.get('/users/me', UsersController.getMe);
 
 export default app;
