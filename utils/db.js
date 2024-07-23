@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { createHash } from 'crypto';
 
 class DBClient {
@@ -61,6 +61,27 @@ class DBClient {
 
     return result.insertedId;
   }
+
+  async findUserByEmail(email) {
+    if (!this.isAlive()) {
+      return null;
+    }
+
+    const collection = this.mongoClient.db().collection('users');
+    const user = await collection.findOne({ email });
+    return user;
+  }
+
+  async findUserById(id) {
+    if (!this.isAlive()) {
+      return null;
+    }
+
+    const collection = this.mongoClient.db().collection('users');
+    const user = await collection.findOne(ObjectId(id));
+    return user;
+  }
 }
+
 const dbClient = new DBClient();
 export default dbClient;
