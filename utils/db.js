@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { createHash } from 'crypto';
 
 class DBClient {
   constructor() {
@@ -7,14 +8,9 @@ class DBClient {
     const database = process.env.DB_DATABASE || 'files_manager';
     this.mongoClient = new MongoClient(`mongodb://${host}:${port}/${database}`, { useUnifiedTopology: true });
     this.isConnectionAlive = false;
-
-    this.mongoClient.connect()
-      .then(() => {
-        this.isConnectionAlive = true;
-      })
-      .catch((err) => {
-        console.error('Failed to connect to MongoDB', err);
-      });
+    this.mongoClient.connect().then(() => {
+      this.isConnectionAlive = true;
+    });
   }
 
   isAlive() {
@@ -39,13 +35,26 @@ class DBClient {
     return count;
   }
 
+  async doesUserExist(email) {
+    if (!this.isAlive()) {
+      return false;
+    }
+
+    const collection = this.mongoClient.db().collection('users');
+    const user = await collection.findOne({ email });
+
+    return user != null;
+  }
+
   async createUser(email, password) {
     if (!this.isAlive()) {
       return -1;
     }
 
-    const hashedPassword = sha1(password);
-    const document = { email, password: hashedPassword };
+    const hash = createHash('sha1');
+    hash.update(password);
+
+    const document = { email, password: hash.digest('hex') };
 
     const collection = this.mongoClient.db().collection('users');
     const result = await collection.insertOne(document);
@@ -59,7 +68,7 @@ class DBClient {
     }
 
     const collection = this.mongoClient.db().collection('users');
-    const user = await collection.findOne({ email }, { projection: { _id: 1, email: 1, password: 1 } });
+    const user = await collection.findOne({ email });
     return user;
   }
 
@@ -69,7 +78,7 @@ class DBClient {
     }
 
     const collection = this.mongoClient.db().collection('users');
-    const user = await collection.findOne({ _id: new ObjectId(id) }, { projection: { _id: 1, email: 1 } });
+    const user = await collection.findOne(ObjectId(id));
     return user;
   }
 }
