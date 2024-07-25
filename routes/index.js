@@ -25,4 +25,8 @@ app.put('/files/:id/publish', FilesController.putPublish);
 
 app.put('/files/:id/unpublish', FilesController.putUnpublish);
 
+app.get('/files/:id', FilesController.getShow);
+
+app.get('/files', FilesController.getIndex);
+
 export default app;

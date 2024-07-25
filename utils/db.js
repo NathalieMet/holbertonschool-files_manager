@@ -116,6 +116,20 @@ class DBClient {
     const updatedFile = await this.findFileById(fileId, userId);
     return (updatedFile)
 }
+  async getFilesForUser(userId, parentId, page) {
+    if (!this.isAlive()) {
+      return -1;
+    }
+
+    const collection = this.mongoClient.db().collection('files');
+    const result = await collection.aggregate([
+      { $match: { userId, parentId } },
+      { $skip: 20 * page },
+      { $limit: 20 }
+    ]).toArray();
+
+    return result;
+  }
 }
 
 const dbClient = new DBClient();
