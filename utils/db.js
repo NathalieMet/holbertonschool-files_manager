@@ -82,13 +82,19 @@ class DBClient {
     return user;
   }
 
-  async findFileById(id) {
+  async findFileById(id, userId = null) {
     if (!this.isAlive()) {
       return null;
     }
 
+    const query = { _id: ObjectId(id) };
+
+    if (userId !== null) {
+      query.userId = userId;
+    }
+
     const collection = this.mongoClient.db().collection('files');
-    const file = await collection.findOne(ObjectId(id));
+    const file = await collection.findOne(query);
     return file;
   }
 
@@ -97,7 +103,7 @@ class DBClient {
       return -1;
     }
 
-    const collection = this.mongoClient.db().collection('users');
+    const collection = this.mongoClient.db().collection('files');
     const result = await collection.insertOne(file);
 
     return result.insertedId;
