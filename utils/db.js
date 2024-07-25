@@ -108,6 +108,14 @@ class DBClient {
 
     return result.insertedId;
   }
+
+  async updateIsPublic(fileId, userId, isPublic) {
+    const filesCollection = this.mongoClient.db().collection('files');
+    await filesCollection.updateOne({ _id: ObjectId(fileId) }, { $set: { isPublic } });
+
+    const updatedFile = await this.findFileById(fileId, userId);
+    return (updatedFile)
+}
 }
 
 const dbClient = new DBClient();

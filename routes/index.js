@@ -21,4 +21,8 @@ app.get('/users/me', UsersController.getMe);
 
 app.post('/files', FilesController.postUpload);
 
+app.put('/files/:id/publish', FilesController.putPublish);
+
+app.put('/files/:id/unpublish', FilesController.putUnpublish);
+
 export default app;
