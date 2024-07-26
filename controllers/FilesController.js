@@ -5,41 +5,49 @@ import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
 
 class FilesController {
-  static validFileTypes = ['folder', 'file', 'image'];
-
+  // Méthode pour gérer l'upload de fichiers
   static async postUpload(req, res) {
+    // Vérification du token d'authentification dans les en-têtes de la requête
     const token = req.headers['x-token'];
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Création de la clé Redis pour l'authentification
     const tokenKey = `auth_${token}`;
+    // Récupération de l'identifiant de l'utilisateur à partir de Redis
     const userId = await redisClient.get(tokenKey);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Récupération des informations du fichier depuis le corps de la requête
     const fileInfo = {
       userId,
       name: req.body.name,
       type: req.body.type,
       isPublic: (req.body.isPublic || 'false') === 'true',
       parentId: req.body.parentId || 0,
-    }
+    };
 
     if (fileInfo.name === undefined) {
       return res.status(400).json({ error: 'Missing name' });
     }
 
-    if (fileInfo.type === undefined || !FilesController.validFileTypes.includes(fileInfo.type)) {
+    const validFileTypes = ['folder', 'file', 'image'];
+
+    // Vérification que le type de fichier est valide
+    if (fileInfo.type === undefined || !validFileTypes.includes(fileInfo.type)) {
       return res.status(400).json({ error: 'Missing type' });
     }
 
+    // Vérification que les données du fichier sont présentes si ce n'est pas un dossier
     if (req.body.data === undefined && fileInfo.type !== 'folder') {
       return res.status(400).json({ error: 'Missing data' });
     }
 
+    // Vérification de l'existence et du type du dossier parent si l'identifiant du parent n'est pas 0
     if (fileInfo.parentId !== 0) {
       const parentFile = await dbClient.findFileById(fileInfo.parentId);
       if (!parentFile) {
@@ -50,21 +58,26 @@ class FilesController {
       }
     }
 
+    // Création du fichier dans la base de données si c'est un dossier
     if (fileInfo.type === 'folder') {
       const id = await dbClient.createFile({ ...fileInfo });
       return res.status(201).json({ id, ...fileInfo });
     }
 
+    // Création du répertoire pour stocker les fichiers si nécessaire
     const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
     mkdirSync(folderPath, { recursive: true });
 
+    // Création du chemin local pour le fichier en utilisant un UUID unique
     const localPath = path.join(folderPath, uuidv4());
-    writeFileSync(localPath, req.body.data, {encoding: 'base64'});
+    writeFileSync(localPath, req.body.data, { encoding: 'base64' });
 
-    const id = await dbClient.createFile({...fileInfo, localPath });
+    // Création du fichier dans la base de données avec le chemin local
+    const id = await dbClient.createFile({ ...fileInfo, localPath });
     return res.status(201).json({ id, ...fileInfo });
   }
 
+  // Méthode pour gérer la publication d'un fichier
   static async putPublish(req, res) {
     const token = req.headers['x-token'];
     if (!token) {
@@ -84,10 +97,12 @@ class FilesController {
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const updatedFile = await dbClient.updateIsPublic(fileId, userId, true)
+    // Mise à jour du statut de publication du fichier
+    const updatedFile = await dbClient.updateIsPublic(fileId, userId, true);
     return res.status(200).json(updatedFile);
   }
 
+  // Méthode pour gérer la dépublication d'un fichier
   static async putUnpublish(req, res) {
     const token = req.headers['x-token'];
     if (!token) {
@@ -107,10 +122,11 @@ class FilesController {
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const updatedFile = await dbClient.updateIsPublic(fileId, userId, false)
+    const updatedFile = await dbClient.updateIsPublic(fileId, userId, false);
     return res.status(200).json(updatedFile);
   }
 
+  // Méthode pour récupérer les détails d'un fichier
   static async getShow(req, res) {
     const token = req.headers['x-token'];
     if (!token) {
@@ -135,10 +151,11 @@ class FilesController {
       name: file.name,
       type: file.type,
       isPublic: file.isPublic,
-      parentId: file.parentId
+      parentId: file.parentId,
     });
   }
 
+  // Méthode pour récupérer la liste des fichiers d'un utilisateur
   static async getIndex(req, res) {
     const token = req.headers['x-token'];
     if (!token) {
@@ -153,16 +170,16 @@ class FilesController {
     }
 
     const parentId = req.query.parentId || 0;
-    const page = parseInt(req.query.page || '0');
+    const page = parseInt(req.query.page || '0', 10);
 
     let files = await dbClient.getFilesForUser(userId, parentId, page);
-    files = files.map(f => ({
+    files = files.map((f) => ({
       id: f._id,
       userId: f.userId,
       name: f.name,
       type: f.type,
       isPublic: f.isPublic,
-      parentId: f.parentId
+      parentId: f.parentId,
     }));
     return res.status(200).json(files);
   }
