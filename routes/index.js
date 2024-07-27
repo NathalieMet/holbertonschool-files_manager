@@ -29,4 +29,6 @@ app.get('/files/:id', FilesController.getShow);
 
 app.get('/files', FilesController.getIndex);
 
+app.get('/files/:id/data', FilesController.getFile);
+
 export default app;
