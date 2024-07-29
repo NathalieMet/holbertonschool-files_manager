@@ -21,7 +21,7 @@ class DBClient {
     return this.isConnectionAlive;
   }
 
-   // Méthode pour obtenir le nombre d'utilisateurs dans la collection 'users'
+  // Méthode pour obtenir le nombre d'utilisateurs dans la collection 'users'
   async nbUsers() {
     if (!this.isAlive()) {
       return -1;

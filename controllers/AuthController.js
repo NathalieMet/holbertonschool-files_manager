@@ -21,7 +21,7 @@ class AuthController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Conversion des informations décodées en une chaîne ASCII et séparation en email et mot de passe
+    // Conversion des informations décodées en email et mot de passe
     const credentials = credentialsBuffer.toString('ascii');
     const [email, password] = credentials.split(':');
 

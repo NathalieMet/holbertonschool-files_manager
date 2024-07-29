@@ -3,8 +3,9 @@ import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import path from 'path';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
-import { fileURLToPath } from 'url';
+
 const mime = require('mime-types');
+const Queue = require('bull');
 
 class FilesController {
   // Méthode pour gérer l'upload de fichiers
@@ -29,7 +30,7 @@ class FilesController {
       userId,
       name: req.body.name,
       type: req.body.type,
-      isPublic: (req.body.isPublic || 'false') === 'true',
+      isPublic: (req.body.isPublic || false),
       parentId: req.body.parentId || 0,
     };
 
@@ -49,7 +50,7 @@ class FilesController {
       return res.status(400).json({ error: 'Missing data' });
     }
 
-    // Vérification de l'existence et du type du dossier parent si l'identifiant du parent n'est pas 0
+    // Vérification de l'existence et du type du dossier parent
     if (fileInfo.parentId !== 0) {
       const parentFile = await dbClient.findFileById(fileInfo.parentId);
       if (!parentFile) {
@@ -76,6 +77,13 @@ class FilesController {
 
     // Création du fichier dans la base de données avec le chemin local
     const id = await dbClient.createFile({ ...fileInfo, localPath });
+
+    // Création d'une tache pour générer les miniature de l'image
+    if (fileInfo.type === 'image') {
+      const fileQueue = new Queue('fileQueue');
+      fileQueue.add({ userId, fileId: id });
+    }
+
     return res.status(201).json({ id, ...fileInfo });
   }
 
@@ -186,41 +194,47 @@ class FilesController {
     return res.status(200).json(files);
   }
 
-// Méthode pour récupérer le contenu d'un fichier
-static async getFile(req, res) {
-  const token = req.headers['x-token'] || null;
+  // Méthode pour récupérer le contenu d'un fichier
+  static async getFile(req, res) {
+    const token = req.headers['x-token'] || null;
 
-  const fileId = req.params.id;
+    const fileId = req.params.id;
 
-  const file = await dbClient.findFileById(fileId);
+    const file = await dbClient.findFileById(fileId);
 
-  if (!file) {
+    if (!file) {
       return res.status(404).json({ error: 'Not found' });
-  }
+    }
 
-  const tokenKey = `auth_${token}`;
-  const userId = await redisClient.get(tokenKey);
+    const tokenKey = `auth_${token}`;
+    const userId = await redisClient.get(tokenKey);
 
-  // Vérifier si le fichier est public
-  if (!file.isPublic) {
-      // Si le fichier n'est pas public, vérifier si l'utilisateur est authentifié et s'il est le propriétaire
+    // Vérifier si le fichier est public
+    if (!file.isPublic) {
+      // Vérifier si l'utilisateur est authentifié et s'il est le propriétaire
       if (!userId || userId !== file.userId.toString()) {
-          return res.status(404).json({ error: 'Not found' });
+        return res.status(404).json({ error: 'Not found' });
       }
-  }
+    }
 
-  if (file.type === 'folder') {
+    if (file.type === 'folder') {
       return res.status(400).json({ error: "A folder doesn't have content" });
-  }
+    }
 
-  try {
+    const querySize = req.query.size;
+    const validSizes = ['500', '250', '100'];
+
+    if (querySize && validSizes.includes(querySize)) {
+      file.localPath = `${file.localPath}_${querySize}`;
+    }
+
+    try {
       const data = readFileSync(file.localPath);
       const mimeType = mime.lookup(file.name) || 'application/octet-stream';
       return res.set('Content-Type', mimeType).status(200).send(data);
-  } catch (err) {
+    } catch (err) {
       return res.status(404).json({ error: 'Not found' });
+    }
   }
-}
-
 }
 export default FilesController;

@@ -9,7 +9,7 @@ class RedisClient {
       console.log(error);
     });
 
-     // Conversion des méthodes callback de Redis en promesses pour une utilisation asynchrone
+    // Conversion des méthodes callback de Redis en promesses pour une utilisation asynchrone
     this.getAsync = promisify(this.client.get).bind(this.client);
     this.setAsync = promisify(this.client.set).bind(this.client);
     this.delAsync = promisify(this.client.del).bind(this.client);

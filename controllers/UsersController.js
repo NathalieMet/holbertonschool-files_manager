@@ -16,7 +16,7 @@ class UsersController {
       return res.json({ error: 'Missing password' });
     }
 
-     // Vérification si un utilisateur avec cet email existe déjà dans la base de données
+    // Vérification si un utilisateur avec cet email existe déjà dans la base de données
     const exist = await dbClient.doesUserExist(email);
     if (exist) {
       res.status(400);
