@@ -1,5 +1,7 @@
 import { createHash } from 'crypto';
-const mongodb = require('mongodb');
+import mongodb from 'mongodb';
+
+const { MongoClient, ObjectId } = mongodb;
 
 class DBClient {
   constructor() {
@@ -8,7 +10,7 @@ class DBClient {
     const database = process.env.DB_DATABASE || 'files_manager';
 
     // Création d'une instance de MongoClient pour se connecter à la base de données MongoDB
-    this.mongoClient = new mongodb.MongoClient(`mongodb://${host}:${port}/${database}`, { useUnifiedTopology: true });
+    this.mongoClient = new MongoClient(`mongodb://${host}:${port}/${database}`, { useUnifiedTopology: true });
     this.isConnectionAlive = false;
 
     // Connexion à MongoDB et mise à jour de l'état de la connexion
@@ -85,7 +87,7 @@ class DBClient {
     }
 
     const collection = this.mongoClient.db().collection('users');
-    const user = await collection.findOne(mongodb.ObjectId(id));
+    const user = await collection.findOne(ObjectId(id));
     return user;
   }
 
@@ -95,7 +97,7 @@ class DBClient {
     }
 
     // Création de la requête pour la recherche du fichier
-    const query = { _id: mongodb.ObjectId(id) };
+    const query = { _id: ObjectId(id) };
 
     if (userId !== null) {
       query.userId = userId;
@@ -119,7 +121,7 @@ class DBClient {
 
   async updateIsPublic(fileId, userId, isPublic) {
     const filesCollection = this.mongoClient.db().collection('files');
-    await filesCollection.updateOne({ _id: mongodb.ObjectId(fileId) }, { $set: { isPublic } });
+    await filesCollection.updateOne({ _id: ObjectId(fileId) }, { $set: { isPublic } });
 
     const updatedFile = await this.findFileById(fileId, userId);
     return (updatedFile);
